@@ -7,7 +7,10 @@
     "test": "grunt test"
   },
   "dependencies": {
+    "body-parser": "^1.10.1",
     "express": "visionmedia/express",
+    "nconf": "^0.7.1",
+    "redis": "^0.12.1",
     "socket.io": "^1.2.1"
   },
   "repository": {
