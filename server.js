@@ -1,3 +1,6 @@
+var path = require('path');
+global.appRoot = path.resolve(__dirname);
+
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -8,7 +11,7 @@ var bodyParser = require('body-parser')
 var openConnections = {};
 var redisClients = {};
 
-nconf.argv().env().file({ file: 'settings.json' });
+nconf.argv().env().file({ file: appRoot+'/settings.json' });
 app.use( bodyParser.json() );
 
 
@@ -37,7 +40,7 @@ app.get('/sse/subscribe', function(req, res){
 	}
 	
     if (redisClients[req.param("channel")]===undefined) { 
-    	redisClient = redis.createClient(nconf.get('redis_port'),nconf.get('redis_ip'),{auth_pass: nconf.get('redis_auth')})
+    	redisClient = redis.createClient(nconf.get('redis:port'),nconf.get('redis:host'),{auth_pass: nconf.get('redis:password')})
 		redisClient.subscribe(req.param("channel"));
 		redisClient.on("message", function (channel, message) {
 	      console.log("Redis Channel " + channel + ": " + message);
@@ -100,7 +103,7 @@ app.post('/sse/publish', function(req, res){
 });
 
 setInterval(function() {
-    console.log("Send connection refresh...");
+    //console.log("Send connection refresh...");
     for(channel in openConnections) {
     	openConnections[channel].forEach(function(resp){
     		timestamp = new Date();
