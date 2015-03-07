@@ -1,10 +1,10 @@
 {
-	"host": "localhost",
+	"host": "192.168.1.54",
 	"port": 9876,
-	"enable_redis" : true,
+	"enable_redis" : false,
 	"refresh_timeout": 60000,
 	"redis": {
-		"host": "localhost",
+		"host": "127.0.0.1",
 		"port" : 6379,
 		"password" : "P05st_Master"
 	}

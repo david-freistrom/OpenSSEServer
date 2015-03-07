@@ -33,25 +33,28 @@ app.get('/sse/subscribe', function(req, res){
 	console.log('Channel "'+ req.param("channel") +'" opened from '+req.ip)
 	console.log('Webtoken: '+req.param("token"));
 	
-	if(openConnections[req.param("channel")]===undefined){
+	if(openConnections[req.param("channel")]==undefined){
 		openConnections[req.param("channel")] = [res];
 	} else {
 		openConnections[req.param("channel")].push(res);
 	}
 	
-    if (redisClients[req.param("channel")]===undefined) { 
-    	redisClient = redis.createClient(nconf.get('redis:port'),nconf.get('redis:host'),{auth_pass: nconf.get('redis:password')})
-		redisClient.subscribe(req.param("channel"));
-		redisClient.on("message", function (channel, message) {
-	      console.log("Redis Channel " + channel + ": " + message);
-	      for(var i=0; i<(openConnections[channel]).length; i++){
-	    	  timestamp = new Date();
-	    	  openConnections[channel][i].write('id: ' + timestamp.getMilliseconds() + '\n');
-	    	  openConnections[channel][i].write('data:' + message +   '\n\n');
-	      }
-		});
-		redisClients[req.param("channel")]=redisClient;
-    }
+	if(nconf.get('enabled_redis')){
+		if (redisClients[req.param("channel")]===undefined) { 
+	    	redisClient = redis.createClient(nconf.get('redis:port'),nconf.get('redis:host'),{auth_pass: nconf.get('redis:password')});
+			redisClient.subscribe(req.param("channel"));
+			redisClient.on("message", function (channel, message) {
+		      console.log("Redis Channel " + channel + ": " + message);
+		      for(var i=0; i<(openConnections[channel]).length; i++){
+		    	  timestamp = new Date();
+		    	  openConnections[channel][i].write('id: ' + timestamp.getMilliseconds() + '\n');
+		    	  openConnections[channel][i].write('data:' + message +   '\n\n');
+		      }
+			});
+			redisClients[req.param("channel")]=redisClient;
+	    }
+	}
+	
 	
 	// When the request is closed, e.g. the browser window
     // is closed. We search through the open connections
@@ -59,28 +62,32 @@ app.get('/sse/subscribe', function(req, res){
     req.on("close", function() {
         var toRemove;
         for (channel in openConnections) {
-            if (channel === req.param('channel')) {
-                for(var j=0 ; j< openConnections[channel].length; j++){
-                	if(openConnections[channel][j] == res){
-                		toRemove=j;
-                        break;
+        	if(channel!=undefined){  	
+        		if (channel === req.param('channel')) {
+        			for(var j=0 ; j< openConnections[channel].length; j++){
+        				if(openConnections[channel][j] == res){
+        					toRemove=j;
+        					break;
+        				}
+        			}
+        			if(toRemove!=undefined){
+        				connections = openConnections[channel];
+        				connections.splice(toRemove,1);
+        				console.log("Channel '"+channel+"' closed");
+        				if(connections.length===0){
+        					delete openConnections[channel];
+        					if(nconf.get('enabled_redis') && redisClients[channel]){
+        						redisClients[channel].unsubscribe();
+        						redisClients[channel].end();
+        						redisClients.splice(redisClients.indexOf(channel), 1);
+        					}
+        				} else {
+        					openConnections[channel]=connections;
+        				}
+                		break;
                 	}
-                }
-            }
-            if(toRemove!=undefined){
-            	connections = openConnections[channel];
-            	connections.splice(toRemove,1);
-            	console.log("Channel '"+channel+"' closed");
-            	if(connections.length===0){
-                	delete openConnections[channel];
-                	redisClients[channel].unsubscribe();
-                	redisClients[channel].end();
-                	delete redisClients[channel];
-                } else {
-                	openConnections[channel]=connections;
-                }
-            	break;
-            }
+            	}
+        	}
         }
     });
 });
@@ -88,6 +95,7 @@ app.get('/sse/subscribe', function(req, res){
 app.post('/sse/publish', function(req, res){
 	channel = req.param("channel");
 	event = req.param('event');		
+	console.log("Receive new push event "+event+" for channel "+channel+"\n")
 	if(openConnections[channel]!=undefined){
 		for(var i=0; i<openConnections[channel].length; i++){
 			timestamp = new Date();
@@ -97,7 +105,10 @@ app.post('/sse/publish', function(req, res){
 			}
 			openConnections[channel][i].write('id: ' + timestamp.getMilliseconds() + '\n');
 			openConnections[channel][i].write('data:' + JSON.stringify(req.body) +   '\n\n');
+			console.log("Sent event to channel: "+channel);
 		}
+	} else {
+		console.log("Channel "+channel+" nicht gefunden!");
 	}
 	res.sendStatus(200);
 });
