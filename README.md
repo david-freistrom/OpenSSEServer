@@ -10,7 +10,9 @@ $ npm install --global open-sse-server
 
 ## Usage
 
-sse-server [-c settings.json]
+```
+OpenSSEServer$ node server
+```
 
 ## Developing
 
@@ -18,8 +20,7 @@ sse-server [-c settings.json]
 OpenIPT$ npm install
 OpenIPT$ grunt build
 OpenIPT$ grunt test
-
-
+```
 
 ### Tools
 
@@ -27,6 +28,18 @@ Created with [Nodeclipse](https://github.com/Nodeclipse/nodeclipse-1)
  ([Eclipse Marketplace](http://marketplace.eclipse.org/content/nodeclipse), [site](http://www.nodeclipse.org))   
 
 Nodeclipse is free open-source project that grows with your contributions.
+
+
+### ToDo's
+
+* Structure
+* Command Line arguments
+* Deamonize
+* Init Script
+* Binary
+* Usage examples
+* Integration tests with Mocha
+* Validations
 
 
 ## License
